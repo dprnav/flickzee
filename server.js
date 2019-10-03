@@ -2,15 +2,29 @@ var express=require('express');
 var app=express();
 var client = require('./connection.js');
 var url = require('url');
-var sw = require('stopword')
+var sw = require('stopword');
+var stemmer = require('stemmer');
+var checkWord = require('check-word')
+var words = checkWord('en');
 
 app.set('views',__dirname + '/views');
 app.set('view engine', 'ejs');
 app.engine('html', require('ejs').renderFile);
+function remove_stopwords_and_stemmer(str) {
 
-function remove_stopwords(str) {
     const oldString = str.split(' ')
-    const newString = sw.removeStopwords(oldString)
+    var newString = sw.removeStopwords(oldString)
+    for (var word in newString){
+      newString[word] = stemmer(newString[word]);
+      var str = newString[word];
+      var n = str.length;
+      var i = 0;
+      for (var len = 3; len <= n - 3; len++){
+          if(words.check(str.substring(i,len)) && words.check(str.substring(len,n))){
+            newString[word] = str.substring(i,len)+'   '+str.substring(len,n);
+          }
+      }
+    }
     return(newString.join(' '))
 }
 
@@ -32,10 +46,11 @@ app.get('/search', (req, res) => {
       query: {
         match: {
           MovieName: {
-            query: remove_stopwords(query.query)
+            query: remove_stopwords_and_stemmer(query.query),
+            fuzziness: "AUTO"
           }
         }
-      },
+      }
     }
   },function (error, response,status) {
       var result = '[';
@@ -54,6 +69,4 @@ app.get('/search', (req, res) => {
   });
 });
 
-var server=app.listen(80,function(){
-console.log("We have started our server on port 3000");
-});
+var server=app.listen(process.env.PORT);
