@@ -54,6 +54,6 @@ app.get('/search', (req, res) => {
   });
 });
 
-var server=app.listen(3000,function(){
+var server=app.listen(80,function(){
 console.log("We have started our server on port 3000");
 });
